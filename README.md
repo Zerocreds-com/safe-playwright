@@ -34,12 +34,20 @@ The guarantee this project researches and builds toward:
   a census of every Playwright / `@playwright/mcp` / CDP data-entry method,
   crossed with every possible interposition point, graded ✅ / ⚠️ / ❌ against
   a 4-tier threat model (LLM context → driver process → page DOM/CDP → network).
-- The proxy layer implementation (design follows from the research).
+- `src/` — the proxy layer implementation (design follows from the research).
+  P2 first: an **external verifier** process separate from the daemon
+  (`src/attestation/` — signed-manifest spawn check, periodic re-hash,
+  verifier-owned alerts, dead-man heartbeat; `src/cli/verifier.js` to run it)
+  and a **two-phase state mutation pipeline** (`src/state/` — intent →
+  deterministic checks → advisory hook → apply → hash-chained log) with the
+  daemon talking to it only over `src/daemon/intent-client.js`.
 
 ## Status
 
-Research phase. The feasibility checklist lands first; implementation follows
-the verdicts in it.
+Research complete (PR #1). Implementation started with P2 — external
+attestation and two-phase state verification (issue #3): run `npm test`
+(Node ≥ 20, no dependencies). Later phases (P3–P7) follow the verdicts in
+the checklist.
 
 ## Language
 

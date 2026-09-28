@@ -1,0 +1,15 @@
+{
+  "name": "safe-playwright",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright proxy layer — external attestation and two-phase state verification",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "verifier": "node src/cli/verifier.js",
+    "manifest": "node src/tools/manifest-tool.js"
+  }
+}
