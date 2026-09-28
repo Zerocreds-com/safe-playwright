@@ -41,6 +41,11 @@ The guarantee this project researches and builds toward:
 Research phase. The feasibility checklist lands first; implementation follows
 the verdicts in it.
 
+## Language
+
+Everything in this repo — documentation, code, comments, commit and PR messages —
+is written in English.
+
 ## License
 
 MIT
