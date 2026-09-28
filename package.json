@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test",
     "demo": "node scripts/p4-fill-handoff-demo.mjs"
   },
   "dependencies": {
