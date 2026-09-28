@@ -8,7 +8,9 @@ into a page while progressively stronger parties are kept from seeing it.
   ([PR #1](https://github.com/Zerocreds-com/safe-playwright/pull/1); tracking
   [issue #2](https://github.com/Zerocreds-com/safe-playwright/issues/2)).
 - Inputs: prior research `playwright_история_безопасность_и_гранулярный_доступ.md`
-  (capability levels 0–5, prompt-injection vectors, Playwright Proxy Layer sketch —
+  (external input file in `~/Downloads`, kept under its original name;
+  "Playwright: history, security and granular access" —
+  capability levels 0–5, prompt-injection vectors, Playwright Proxy Layer sketch —
   builds on it, does not repeat it), the `trained-assist-agent` codebase
   (ZeroCreds + Playwright usage, cited as `trained-assist-agent/<path>:<line>`),
   upstream docs (playwright.dev, `@playwright/mcp` v0.0.29 npm tarball,
