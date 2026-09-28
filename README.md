@@ -44,10 +44,78 @@ The guarantee this project researches and builds toward:
 
 ## Status
 
-Research complete (PR #1). Implementation started with P2 — external
-attestation and two-phase state verification (issue #3): run `npm test`
-(Node ≥ 20, no dependencies). Later phases (P3–P7) follow the verdicts in
-the checklist.
+Research landed (PR #1). First implementation phase is in progress:
+P2 external attestation (#3) and **P4 fill browser + storage-state
+handoff (#5)** — see the PoC below.
+
+## P4 PoC: fill browser + storage-state handoff (issue #5)
+
+The universal default from the checklist verdict (§6.1): **the credential
+never exists in the agent's browser.** A dedicated fill worker performs the
+whole login in its own process; the agent's browser is born with
+`storage-state`.
+
+### Flow
+
+```
+ cred file (0600)          local test login server
+        │                          ▲
+        ▼                          │ login flow (password, OTP, CAPTCHA)
+ ┌──────────────────────────┐      │
+ │ audited fill worker      │──────┘
+ │ src/audited-filler.mjs   │  separate process (optionally slot OS user)
+ │ Playwright default pipe  │  --remote-debugging-pipe, ZERO TCP ports
+ │ no pixel export          │  screenshots/video/tracing policy-blocked
+ └────────────┬─────────────┘
+              │ storage-state (0600, cookies only — never the password)
+              ▼
+ ┌──────────────────────────┐
+ │ agent browser            │  born with storageState: authenticated,
+ │ page.evaluate(...)       │  password absent from DOM/storage/cookies
+ └──────────────────────────┘
+```
+
+### Run it
+
+```bash
+npm install
+npx playwright install chromium
+npm test    # full acceptance test (test/p4-fill-browser-handoff.test.mjs)
+npm run demo  # narrative walkthrough of the same flow
+```
+
+The PoC only ever talks to a loopback test server
+(`src/local-login-server.mjs`) — it never hits a real site.
+
+### What the test asserts (issue #5 acceptance criteria)
+
+| Criterion | Where |
+|---|---|
+| Login through the fill browser; agent-side evaluate finds no password in the DOM | `test/p4-fill-browser-handoff.test.mjs` — `agent browser is authenticated…` |
+| Fill browser has no listening TCP port (audited twice: worker-side and independent, while the browser is alive) | `fill worker performs the login…` |
+| Separate OS user, or a documented blocker | `fill browser runs as a different OS user…` + docs |
+| `storage-state` handoff authenticates the agent without the credential | `storage-state handoff artifact…` |
+| Post-fill hygiene (L5): navigation happened, field empty on return | `report: post-fill hygiene (L5)…` |
+| Demo script + this README section | `scripts/p4-fill-handoff-demo.mjs`, this section |
+
+### Separate OS user — current blocker
+
+The PoC *attempts* the slot-user switch (`SAFE_PLAYWRIGHT_SLOT_USER`,
+`src/slot-user.mjs`); in this environment it is **blocked**: creating an OS
+user or switching uid needs root, and non-interactive `sudo -n` is not
+available (a password would be required). The test accepts either outcome
+— a real uid split, or this blocker — and the blocker is documented in
+`docs/p4-fill-browser-storage-state-handoff-poc.md` with the production
+remediation. Until then the filler runs as the same uid as the agent.
+
+### Residual risks (by design)
+
+- The fill browser's page sees the password during fill (L1, domain
+  trust) — accepted in the checklist.
+- The session cookie *is* handed to the agent browser (U5): cookies are
+  bearer secrets; P3 return-path controls stay active after handoff.
+- Second-CDP-attach enforcement on persistent port-exposed Chrome remains
+  out of scope here → epic #2 brainstorm.
 
 ## Language
 

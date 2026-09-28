@@ -2,14 +2,18 @@
   "name": "safe-playwright",
   "version": "0.1.0",
   "private": true,
-  "description": "Playwright proxy layer — external attestation and two-phase state verification",
+  "description": "Playwright proxy layer — the browser fills sensitive data while the agent, the driver and the LLM never see it.",
   "license": "MIT",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test \"test/*.test.js\"",
+    "test": "node --test",
+    "demo": "node scripts/p4-fill-handoff-demo.mjs",
     "verifier": "node src/cli/verifier.js",
     "manifest": "node src/tools/manifest-tool.js"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0"
   }
 }
