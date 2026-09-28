@@ -4,7 +4,9 @@
 Playwright-driven session can type sensitive data (password, OTP, PII, card, passport)
 into a page while progressively stronger parties are kept from seeing it.
 
-- Status: research complete, no implementation code in this PR.
+- Status: research complete, no implementation code in this PR
+  ([PR #1](https://github.com/Zerocreds-com/safe-playwright/pull/1); tracking
+  [issue #2](https://github.com/Zerocreds-com/safe-playwright/issues/2)).
 - Inputs: prior research `playwright_история_безопасность_и_гранулярный_доступ.md`
   (capability levels 0–5, prompt-injection vectors, Playwright Proxy Layer sketch —
   builds on it, does not repeat it), the `trained-assist-agent` codebase
