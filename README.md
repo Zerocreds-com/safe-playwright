@@ -77,6 +77,31 @@ Every PR runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 - **ci** — a single aggregate job; branch protection on `main` requires
   exactly this check (repo ruleset, no bypass).
 
+## Golden MCP tool set (issue #21)
+
+`src/mcp/` is a zero-dependency MCP server over stdio (`npm run mcp`) —
+the Playwright tool surface, rebuilt *inside* this repo so the tools and
+the guards change under one signed manifest, one policy-lint ratchet.
+Exactly seven tools:
+
+| Tool | Security built in |
+|---|---|
+| `browser_navigate` | http(s) only, metadata/IMDS always blocked, private hosts need `SAFE_MCP_PRIVATE_ALLOW` |
+| `browser_snapshot` | fails closed while a password field holds a value; OTP/tel/card values never serialized |
+| `browser_click` / `browser_wait` | ref-based, stale refs give instructive errors |
+| `browser_type` | refuses password/OTP targets (→ `browser_login`); registered canary values are a hard failure |
+| `browser_login` | the P5 flow: audited fill worker in a separate process, storage-state handoff, status-only result |
+| `browser_screenshot` | refuses credential pages (password/OTP/card fields — pixel policy U7) |
+
+Absent by design: evaluate/run-code, raw cookies, console dumps, CDP
+attachment, env access (research doc §6.2). Config: `SAFE_MCP_CRED_STORE`
+(0600 store of `cred://` → login URL + credential file), `SAFE_MCP_CANARY`.
+
+Tested on both axes (`test/mcp-golden-tools.test.mjs`): **security**
+(guard refusals, redaction, fail-closed snapshot, canary rejection,
+no-secret results) and **usability** (an agent logs in and reads the page
+using only these tools).
+
 ## P4 PoC: fill browser + storage-state handoff (issue #5)
 
 The universal default from the research verdict (§6.1): **the credential

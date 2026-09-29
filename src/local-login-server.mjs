@@ -33,6 +33,35 @@ const DASHBOARD_PAGE = `<!doctype html>
 </body>
 </html>`;
 
+const FORM_DEMO_PAGE = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Form demo</title></head>
+<body>
+  <h1>Form demo</h1>
+  <form>
+    <label>Note <input id="note" name="note" type="text" value="meet at noon"></label>
+    <label>Phone <input id="phone" name="phone" type="tel" autocomplete="tel" value="555-0142"></label>
+    <label>Code <input id="otp" name="otp" type="text" autocomplete="one-time-code" value="493812"></label>
+    <label>Card <input id="card" name="card" type="text" autocomplete="cc-number" value="4111111111111111"></label>
+    <button type="button">Save</button>
+  </form>
+</body>
+</html>`;
+
+// A page where a password field still holds a value: the fixture for
+// snapshot fail-closed and screenshot-refusal tests.
+const PREFILLED_PAGE = `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Re-authenticate</title></head>
+<body>
+  <h1>Re-authenticate</h1>
+  <form>
+    <label>Password <input id="password" name="password" type="password" value="lingering-secret-1"></label>
+    <button type="submit">Continue</button>
+  </form>
+</body>
+</html>`;
+
 const FORBIDDEN_PAGE = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Sign in required</title></head>
 <body><div id="auth-state" data-authenticated="false">Sign in required.</div></body></html>`;
@@ -99,6 +128,16 @@ export async function startLocalLoginServer({ username, password, host = '127.0.
       }
       stats.dashboardViews += 1;
       sendHtml(res, 200, DASHBOARD_PAGE);
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/form-demo') {
+      sendHtml(res, 200, FORM_DEMO_PAGE);
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/prefilled') {
+      sendHtml(res, 200, PREFILLED_PAGE);
       return;
     }
 
