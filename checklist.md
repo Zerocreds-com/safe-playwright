@@ -15,7 +15,7 @@ Goal: P4 fill browser + storage-state handoff PoC (issue #5, epic #2)
 
 - [x] PR: https://github.com/Zerocreds-com/safe-playwright/pull/11 — tests 8/8, demo 13/13
 - [x] Merged to main; CI green on main (workflow landed later in PR #12)
-- [ ] Issue #5 acceptance boxes checked off in the issue (separate-OS-user blocker documented in docs/p4-fill-browser-storage-state-handoff-poc.md)
+- [x] Issue #5 acceptance boxes checked off in the issue (separate-OS-user blocker documented in docs/p4-fill-browser-storage-state-handoff-poc.md)
 
 Goal: CI baseline (test matrix + policy ratchet, epic #2 C9)
 
