@@ -3,7 +3,7 @@
 Implementation note for the PoC built per
 [issue #5](https://github.com/Zerocreds-com/safe-playwright/issues/5)
 (epic [#2](https://github.com/Zerocreds-com/safe-playwright/issues/2),
-checklist §2 P5+P2 and §6.1). This document covers what was built, what the
+research §2 P5+P2 and §6.1). This document covers what was built, what the
 test proves, the separate-OS-user blocker, and what is deliberately out of
 scope.
 
@@ -43,7 +43,7 @@ it is born authenticated and has no login flow of its own.
 - `test/p4-fill-browser-handoff.test.mjs` — the acceptance test.
 - `scripts/p4-fill-handoff-demo.mjs` — narrative demo (`npm run demo`).
 
-## 2. Invariants enforced (checklist §5, epic C10/C11)
+## 2. Invariants enforced (epic §5, C10/C11)
 
 1. **Secret browser = pipe, no TCP ports.** The fill browser is asserted
    *twice*: by the worker itself (report) and independently by the parent
@@ -73,7 +73,7 @@ enforcement mechanism is explicitly deferred to the epic #2 brainstorm
 of scope here"). This document records that decision rather than silently
 dropping it.
 
-## 3. Threat-tier mapping (checklist §1.1, §2 P5)
+## 3. Threat-tier mapping (research §1.1, §2 P5)
 
 | Tier | Fill browser PoC |
 |---|---|
@@ -125,5 +125,5 @@ per-criterion expectations are described in README §P4 PoC.
   own code paths and fails loudly; a determined in-process caller could
   reach unpatched helpers. Enforcement hardening belongs with the CI
   ratchet (epic C9).
-- URL-blocking the agent from re-opening login pages (checklist §2 P5
+- URL-blocking the agent from re-opening login pages (research §2 P5
   failure mode) is not part of this issue.

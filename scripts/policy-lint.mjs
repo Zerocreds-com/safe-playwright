@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // policy-lint — static security ratchet for safe-playwright (epic #2 C9,
-// checklist §6.2 "forbid outright", §6 option 5).
+// research §6.2 "forbid outright", §6 option 5).
 //
 // Zero dependencies; run as `npm run policy:lint` or in CI. It scans
 // code files only (src/, test/, scripts/) — documentation may *mention*
@@ -36,13 +36,13 @@ const RULES = [
     pattern: /--remote-debugging-port/,
     why:
       'launch-path code must never request a TCP debugging port — the fill ' +
-      'browser runs over the Playwright pipe only (checklist §6 option 5)',
+      'browser runs over the Playwright pipe only (research §6 option 5)',
   },
   {
     id: 'no-exposed-devtools-protocol',
     files: '**',
     pattern: /exposeDevToolsProtocol/,
-    why: 'Target.exposeDevToolsProtocol is forbidden outright (checklist §6.2)',
+    why: 'Target.exposeDevToolsProtocol is forbidden outright (research §6.2)',
   },
   {
     id: 'no-pixel-export-in-fill-worker',

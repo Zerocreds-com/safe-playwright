@@ -8,9 +8,10 @@ case a reader can jump to the file/test that implements the defense, or
 to the open issue that tracks the gap.
 
 Standing context: our threat model and control list live in
-[`sensitive-data-proxy-feasibility-checklist.md`](sensitive-data-proxy-feasibility-checklist.md)
-(§1 tiers L1–L5 / T0–T3, §5 invariants, §6 verdicts) and epic
-[#2](https://github.com/Zerocreds-com/safe-playwright/issues/2). This
+[`sensitive-data-vulnerabilities-and-controls.md`](sensitive-data-vulnerabilities-and-controls.md)
+(§1 tiers L1–L5 / T0–T3, §6 verdicts) and epic
+[#2](https://github.com/Zerocreds-com/safe-playwright/issues/2) (§5
+invariants, controls C1–C15). This
 document does not replace them — it re-orders them by *what attackers
 actually do*.
 
@@ -56,7 +57,7 @@ through review.
   (`scripts/policy-lint.mjs`).
 - Port-exposed browsers are cookie-only by rule, never fill targets
   (issue [#5](https://github.com/Zerocreds-com/safe-playwright/issues/5)
-  scope; checklist §5 invariant 1).
+  scope; epic #2 §5 invariant 1).
 
 **Gap / deferred.** Connection accounting (count CDP clients, alert on
 the second) for the *persistent* port-exposed Chrome is intentionally
@@ -123,7 +124,7 @@ from exfiltration.
   password is absent from DOM, storage and cookies
   (`test/p4-fill-browser-handoff.test.mjs`).
 - Residual, stated honestly: **the session cookie is a bearer secret and
-  does cross to the agent by design** (checklist §2 P5 "residual", epic
+  does cross to the agent by design** (research §2 P5 "residual", epic
   #2 U5). Mitigations that remain: short TTL, no raw cookie tool
   results (§6.2), return-path redaction + egress filter (C5/C6 →
   issue #4).
@@ -167,7 +168,7 @@ boundary"* — the boundary must be built around it.
 
 **Our defense.**
 - Structural: after P5 the agent is **never pointed at a live login
-  form** (checklist §6.2: snapshotting while a credential field holds a
+  form** (research §6.2: snapshotting while a credential field holds a
   value is forbidden), so the highest-value injection target is absent
   from the agent's session.
 - Model-side defenses (snapshot redaction C5, forbid-list C9) belong to
@@ -218,7 +219,7 @@ theft.
   (`.github/dependabot.yml`).
 - At rest: P2 attestation (merged, PR #10) re-hashes the tree against a
   signed manifest and alerts on drift — tampering *after* install is
-  detected (checklist C1, epic A4).
+  detected (epic C1, epic A4).
 
 ### 1.9 Secrets in argv / env / logs
 
@@ -242,8 +243,8 @@ core dumps), or a stray `console.log`.
 ### 1.10 Pixel leaks (screenshots/video of credential pages)
 
 **What it is.** OTP codes, PII and card numbers are legible in pixels
-(passwords are masked, but the policy is blanket) — checklist U7,
-§6.2 "no pixel export from the fill browser".
+(passwords are masked, but the policy is blanket) — epic U7,
+research §6.2 "no pixel export from the fill browser".
 
 **Primitives:** (d).
 
@@ -307,7 +308,7 @@ Reading the matrix honestly: **cases that reduce to "the agent did
 something with a hostile page" (1.3, 1.5, 1.6, part of 1.4) are all
 waiting on the same control — P3 (issue #4)**: reference-mode,
 return-path redaction, destination allowlist and the forbid-list ratchet.
-That is not an accident: the checklist's order of reliance
+That is not an accident: the order of reliance
 (*structural > binding > monitoring*) puts P5 (done) first and P4's
 destination binding second. Next in line per the epic: #4, then #6, #7.
 

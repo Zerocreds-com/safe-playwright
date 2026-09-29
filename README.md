@@ -32,7 +32,7 @@ The guarantee this project researches and builds toward:
 
 ## What will live here
 
-- `docs/sensitive-data-proxy-feasibility-checklist.md` — the research:
+- `docs/sensitive-data-vulnerabilities-and-controls.md` — the research:
   a census of every Playwright / `@playwright/mcp` / CDP data-entry method,
   crossed with every possible interposition point, graded ✅ / ⚠️ / ❌ against
   a 4-tier threat model (LLM context → driver process → page DOM/CDP → network).
@@ -79,7 +79,7 @@ Every PR runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 
 ## P4 PoC: fill browser + storage-state handoff (issue #5)
 
-The universal default from the checklist verdict (§6.1): **the credential
+The universal default from the research verdict (§6.1): **the credential
 never exists in the agent's browser.** A dedicated fill worker performs the
 whole login in its own process; the agent's browser is born with
 `storage-state`.
@@ -140,7 +140,7 @@ remediation. Until then the filler runs as the same uid as the agent.
 ### Residual risks (by design)
 
 - The fill browser's page sees the password during fill (L1, domain
-  trust) — accepted in the checklist.
+  trust) — accepted in the research doc.
 - The session cookie *is* handed to the agent browser (U5): cookies are
   bearer secrets; P3 return-path controls stay active after handoff.
 - Second-CDP-attach enforcement on persistent port-exposed Chrome remains
