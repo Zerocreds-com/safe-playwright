@@ -36,6 +36,10 @@ The guarantee this project researches and builds toward:
   a census of every Playwright / `@playwright/mcp` / CDP data-entry method,
   crossed with every possible interposition point, graded ✅ / ⚠️ / ❌ against
   a 4-tier threat model (LLM context → driver process → page DOM/CDP → network).
+- `docs/common-playwright-attack-cases-and-defenses.md` — the attack
+  survey: real CVEs and advisories against Playwright / Playwright-MCP /
+  browser-agent stacks (2024–2026), each mapped to the control in this
+  repo that defends it, or to the issue that tracks the gap.
 - `src/` — the proxy layer implementation (design follows from the research).
   P2 first: an **external verifier** process separate from the daemon
   (`src/attestation/` — signed-manifest spawn check, periodic re-hash,
@@ -61,10 +65,15 @@ Every PR runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
   lockfile hash (`PLAYWRIGHT_BROWSERS_PATH`).
 - **policy-lint** — zero-dependency static ratchet over fill-path code,
   runnable locally as `npm run policy:lint`: no `--remote-debugging-port`
-  in launch-path files, no `exposeDevToolsProtocol` anywhere, no
-  pixel-export APIs or `connectOverCDP` in the fill worker, no focused
-  tests. Documentation may *mention* any of these tokens — only `src/`,
-  `test/` and `scripts/` are scanned.
+  or `--remote-debugging-address` in launch-path files, no
+  `exposeDevToolsProtocol` anywhere, no pixel-export APIs or
+  `connectOverCDP` in the fill worker, no code-exec sinks (`eval`,
+  `new Function`, `vm`), no `file://`, no bind-all (`0.0.0.0`), no
+  `ignoreHTTPSErrors`, no focused tests. Documentation may *mention* any
+  of these tokens — only `src/`, `test/` and `scripts/` are scanned.
+- **supply-chain** — `npm ci --ignore-scripts` from the lockfile, then
+  `npm audit --audit-level=high`; Dependabot keeps npm packages and
+  GitHub Actions current (`.github/dependabot.yml`).
 - **ci** — a single aggregate job; branch protection on `main` requires
   exactly this check (repo ruleset, no bypass).
 

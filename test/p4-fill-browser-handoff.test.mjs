@@ -60,6 +60,13 @@ test('P4: fill browser login, zero TCP ports, storage-state handoff to agent bro
     assert.equal(fileMode(paths.credFile), '600');
   });
 
+  await t.test('test login server binds loopback only', () => {
+    assert.ok(
+      server.url.startsWith('http://127.0.0.1:'),
+      `test server must bind loopback, got ${server.url}`,
+    );
+  });
+
   await t.test('fill worker performs the login and holds the browser open for audit', async () => {
     const worker = spawnFillWorker({
       loginUrl: `${server.url}/login`,

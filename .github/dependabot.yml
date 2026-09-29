@@ -1,0 +1,16 @@
+# Keep the dependency tree and the CI actions current: Playwright bumps
+# also carry Chromium fixes, and npm audit in CI gates the rest.
+# Rationale and the CVE watch items: docs/common-playwright-attack-cases-and-defenses.md
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

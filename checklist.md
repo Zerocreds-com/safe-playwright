@@ -23,3 +23,12 @@ Goal: CI baseline (test matrix + policy ratchet, epic #2 C9)
 - [x] Branch protection on main: ruleset requires the `ci` check
 - [ ] npm audit + Dependabot + signed-manifest release jobs (next step)
 - [ ] Differential canary runs in CI — belongs to P3 (#4)
+
+Goal: Common Playwright attack-cases survey + supply-chain hardening
+
+- [x] Survey doc + coverage matrix: docs/common-playwright-attack-cases-and-defenses.md (12 cases)
+- [x] policy-lint extended to 10 rules (debugging-address, code-exec sinks, file://, bind-all, TLS blindfold) — mutation-tested
+- [x] CI: supply-chain job (npm ci --ignore-scripts + npm audit --audit-level=high) + Dependabot (npm, github-actions)
+- [x] P4 test asserts the login server binds loopback only
+- [x] Open items filed: issue #14 (browser-install integrity CVE-2025-59288, @playwright/mcp pin CVE-2025-9611)
+- [ ] PR CI green and merged
