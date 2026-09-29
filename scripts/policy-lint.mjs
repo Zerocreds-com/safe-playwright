@@ -25,7 +25,7 @@ const SELF = fileURLToPath(import.meta.url);
 const CODE_DIRS = ['src', 'test', 'scripts'];
 
 // Files that launch or configure the fill browser.
-const LAUNCH_PATH = ['src/audited-filler.mjs', 'src/handoff-runner.mjs'];
+const LAUNCH_PATH = ['src/audited-filler.mjs', 'src/handoff-runner.mjs', 'src/mcp/server.mjs'];
 // The sealed fill worker — strictest surface.
 const FILL_WORKER = 'src/audited-filler.mjs';
 
