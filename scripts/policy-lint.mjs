@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // policy-lint — static security ratchet for safe-playwright (epic #2 C9,
-// checklist §6.2 "forbid outright", §6 option 5).
+// research §6.2 "forbid outright", §6 option 5).
 //
 // Zero dependencies; run as `npm run policy:lint` or in CI. It scans
 // code files only (src/, test/, scripts/) — documentation may *mention*
@@ -36,13 +36,13 @@ const RULES = [
     pattern: /--remote-debugging-port/,
     why:
       'launch-path code must never request a TCP debugging port — the fill ' +
-      'browser runs over the Playwright pipe only (checklist §6 option 5)',
+      'browser runs over the Playwright pipe only (research §6 option 5)',
   },
   {
     id: 'no-exposed-devtools-protocol',
     files: '**',
     pattern: /exposeDevToolsProtocol/,
-    why: 'Target.exposeDevToolsProtocol is forbidden outright (checklist §6.2)',
+    why: 'Target.exposeDevToolsProtocol is forbidden outright (research §6.2)',
   },
   {
     id: 'no-pixel-export-in-fill-worker',
@@ -64,6 +64,49 @@ const RULES = [
     pattern: /\.only\(/,
     why: 'focused tests (.only) silently skip the rest of the suite in CI',
   },
+  {
+    id: 'no-remote-debugging-address-in-launch-path',
+    files: LAUNCH_PATH,
+    pattern: /--remote-debugging-address/,
+    why:
+      'binding CDP to a non-loopback address exposes the debugging endpoint ' +
+      'to the network; the flag behaves differently per Chromium binary ' +
+      '(playwright#39802) — pipe transport only',
+  },
+  {
+    id: 'no-code-exec-sinks-in-src',
+    files: 'src/**',
+    // The lookbehind allows Playwright's page.$eval / page.evaluate while
+    // banning a real eval( call.
+    pattern: /(?<![.$\w])eval\s*\(|new\s+Function\s*\(|node:vm|require\(\s*['"]vm['"]|runInContext/,
+    why:
+      'driver-side code-exec sinks are how browser_run_code-style RCE happens ' +
+      '(playwright-mcp#1495: vm sandbox escape via the prototype chain)',
+  },
+  {
+    id: 'no-file-urls',
+    files: '**',
+    pattern: /file:\/\//,
+    why:
+      'file:// navigation is the local-file-read half of the agent SSRF class ' +
+      '(mcp-playwright#209, playwright-mcp#1626) — no code path may use it',
+  },
+  {
+    id: 'no-bind-all',
+    files: 'src/**',
+    pattern: /0\.0\.0\.0/,
+    why:
+      'host code binds loopback only (127.0.0.1) — binding all interfaces ' +
+      'makes internal services reachable (SSRF class, attack-cases doc §1.5)',
+  },
+  {
+    id: 'no-tls-blindfold',
+    files: '**',
+    pattern: /ignoreHTTPSErrors/,
+    why:
+      'disabling TLS verification removes the only signal against MITM on the ' +
+      'navigation/download path (CVE-2025-59288 class)',
+  },
 ];
 
 function walk(dir) {
@@ -82,7 +125,10 @@ function walk(dir) {
 
 function matches(relPath, rule) {
   if (rule.files === '**') return true;
-  if (rule.files === 'test/**') return relPath.startsWith('test/');
+  if (typeof rule.files === 'string') {
+    if (rule.files.endsWith('/**')) return relPath.startsWith(rule.files.slice(0, -2));
+    return relPath === rule.files;
+  }
   return rule.files.includes(relPath);
 }
 

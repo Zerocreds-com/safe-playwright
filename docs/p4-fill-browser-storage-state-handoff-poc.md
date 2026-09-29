@@ -3,7 +3,7 @@
 Implementation note for the PoC built per
 [issue #5](https://github.com/Zerocreds-com/safe-playwright/issues/5)
 (epic [#2](https://github.com/Zerocreds-com/safe-playwright/issues/2),
-checklist §2 P5+P2 and §6.1). This document covers what was built, what the
+research §2 P5+P2 and §6.1). This document covers what was built, what the
 test proves, the separate-OS-user blocker, and what is deliberately out of
 scope.
 
@@ -43,7 +43,7 @@ it is born authenticated and has no login flow of its own.
 - `test/p4-fill-browser-handoff.test.mjs` — the acceptance test.
 - `scripts/p4-fill-handoff-demo.mjs` — narrative demo (`npm run demo`).
 
-## 2. Invariants enforced (checklist §5, epic C10/C11)
+## 2. Invariants enforced (epic §5, C10/C11)
 
 1. **Secret browser = pipe, no TCP ports.** The fill browser is asserted
    *twice*: by the worker itself (report) and independently by the parent
@@ -73,7 +73,7 @@ enforcement mechanism is explicitly deferred to the epic #2 brainstorm
 of scope here"). This document records that decision rather than silently
 dropping it.
 
-## 3. Threat-tier mapping (checklist §1.1, §2 P5)
+## 3. Threat-tier mapping (research §1.1, §2 P5)
 
 | Tier | Fill browser PoC |
 |---|---|
@@ -108,21 +108,13 @@ asserts the alternative acceptance branch: a specific, documented blocker.
 Either removes the same-uid exposure of filler env/memory/core dumps
 (epic C15 / threat U6).
 
-## 5. Acceptance criteria results (issue #5)
+## 5. Acceptance criteria (issue #5)
 
-Local run (macOS, Node 24, Playwright 1.63): `npm test` → **8/8 tests
-pass**; `npm run demo` → **13/13 checks pass**. Both blocker branches of
-the slot-user path were exercised additionally (`SAFE_PLAYWRIGHT_SLOT_USER`
-set to an existing and to a nonexistent user — 8/8 each).
-
-| Criterion | Result |
-|---|---|
-| PoC demo: login via fill browser; agent-side session reads the page; password absent (evaluate finds empty field / no credential in DOM) | PASS — agent browser authenticates via storage-state; `page.evaluate` on `/login` returns `{"present":true,"value":""}`; password absent from dashboard/login DOM, storage and cookies |
-| Fill browser process has no listening TCP port (verified in test) | PASS — asserted twice (worker self-audit + independent parent audit while alive): `--remote-debugging-pipe` present, no `--remote-debugging-port`, `listeningTcpPorts: []` |
-| Fill browser runs as a different OS user than the agent (or documented blocker) | BLOCKED — documented in §4; test asserts the blocker branch (specific reason + docs reference) |
-| `storage-state` handoff works: agent authenticated without ever seeing the credential | PASS — `auth-state[data-authenticated=true]`, session cookie present, `containsPassword=false`, file mode `600` |
-| Post-fill hygiene: field cleared / navigation happened (L5) asserted | PASS — `navigatedAfterSubmit=true`, no password field on dashboard, empty field and no credential in HTML on return to `/login` |
-| Demo script + README section | `scripts/p4-fill-handoff-demo.mjs` (`npm run demo`), README §P4 PoC |
+All six criteria are asserted by `test/p4-fill-browser-handoff.test.mjs`
+and re-run on every CI push. **Status lives in
+[issue #5](https://github.com/Zerocreds-com/safe-playwright/issues/5)**
+(boxes checked, evidence summarized in the PR #11 description); the
+per-criterion expectations are described in README §P4 PoC.
 
 ## 6. Known limitations of the PoC
 
@@ -133,5 +125,5 @@ set to an existing and to a nonexistent user — 8/8 each).
   own code paths and fails loudly; a determined in-process caller could
   reach unpatched helpers. Enforcement hardening belongs with the CI
   ratchet (epic C9).
-- URL-blocking the agent from re-opening login pages (checklist §2 P5
+- URL-blocking the agent from re-opening login pages (research §2 P5
   failure mode) is not part of this issue.

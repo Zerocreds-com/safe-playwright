@@ -1,4 +1,4 @@
-# Sensitive-data proxy feasibility checklist
+# Sensitive-data vulnerabilities and controls
 
 **Research doc for safe-playwright.** Where a proxy layer can be inserted so that a
 Playwright-driven session can type sensitive data (password, OTP, PII, card, passport)
@@ -784,4 +784,4 @@ These are the leaks any safe-playwright design must not reproduce.
 ---
 
 *Research only — no implementation code in this document. Implementation follows the
-verdicts in §6; tracking in the repo checklist and the linked issue.*
+verdicts in §6; tracking in the linked issues.*

@@ -32,10 +32,14 @@ The guarantee this project researches and builds toward:
 
 ## What will live here
 
-- `docs/sensitive-data-proxy-feasibility-checklist.md` — the research:
+- `docs/sensitive-data-vulnerabilities-and-controls.md` — the research:
   a census of every Playwright / `@playwright/mcp` / CDP data-entry method,
   crossed with every possible interposition point, graded ✅ / ⚠️ / ❌ against
   a 4-tier threat model (LLM context → driver process → page DOM/CDP → network).
+- `docs/common-playwright-attack-cases-and-defenses.md` — the attack
+  survey: real CVEs and advisories against Playwright / Playwright-MCP /
+  browser-agent stacks (2024–2026), each mapped to the control in this
+  repo that defends it, or to the issue that tracks the gap.
 - `src/` — the proxy layer implementation (design follows from the research).
   P2 first: an **external verifier** process separate from the daemon
   (`src/attestation/` — signed-manifest spawn check, periodic re-hash,
@@ -61,16 +65,21 @@ Every PR runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
   lockfile hash (`PLAYWRIGHT_BROWSERS_PATH`).
 - **policy-lint** — zero-dependency static ratchet over fill-path code,
   runnable locally as `npm run policy:lint`: no `--remote-debugging-port`
-  in launch-path files, no `exposeDevToolsProtocol` anywhere, no
-  pixel-export APIs or `connectOverCDP` in the fill worker, no focused
-  tests. Documentation may *mention* any of these tokens — only `src/`,
-  `test/` and `scripts/` are scanned.
+  or `--remote-debugging-address` in launch-path files, no
+  `exposeDevToolsProtocol` anywhere, no pixel-export APIs or
+  `connectOverCDP` in the fill worker, no code-exec sinks (`eval`,
+  `new Function`, `vm`), no `file://`, no bind-all (`0.0.0.0`), no
+  `ignoreHTTPSErrors`, no focused tests. Documentation may *mention* any
+  of these tokens — only `src/`, `test/` and `scripts/` are scanned.
+- **supply-chain** — `npm ci --ignore-scripts` from the lockfile, then
+  `npm audit --audit-level=high`; Dependabot keeps npm packages and
+  GitHub Actions current (`.github/dependabot.yml`).
 - **ci** — a single aggregate job; branch protection on `main` requires
   exactly this check (repo ruleset, no bypass).
 
 ## P4 PoC: fill browser + storage-state handoff (issue #5)
 
-The universal default from the checklist verdict (§6.1): **the credential
+The universal default from the research verdict (§6.1): **the credential
 never exists in the agent's browser.** A dedicated fill worker performs the
 whole login in its own process; the agent's browser is born with
 `storage-state`.
@@ -131,7 +140,7 @@ remediation. Until then the filler runs as the same uid as the agent.
 ### Residual risks (by design)
 
 - The fill browser's page sees the password during fill (L1, domain
-  trust) — accepted in the checklist.
+  trust) — accepted in the research doc.
 - The session cookie *is* handed to the agent browser (U5): cookies are
   bearer secrets; P3 return-path controls stay active after handoff.
 - Second-CDP-attach enforcement on persistent port-exposed Chrome remains
