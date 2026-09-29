@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS matters: src/port-audit.mjs has a darwin (lsof) branch and
+        # a Linux (/proc) branch — both must be exercised.
+        os: [ubuntu-latest, macos-latest]
+        node: [20, 24]
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: .pw-browsers
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            pw-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium (Linux)
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Chromium (macOS)
+        if: runner.os != 'Linux'
+        run: npx playwright install chromium
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run P4 fill-handoff demo (smoke)
+        run: npm run demo
+
+  policy-lint:
+    name: policy-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Zero-dependency static ratchet over fill-path code (epic #2 C9).
+      - name: Static policy ratchet
+        run: node scripts/policy-lint.mjs
+
+  # Single required check for branch protection: aggregates the whole
+  # matrix and the policy ratchet without listing every job name.
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [test, policy-lint]
+    steps:
+      - name: Require all jobs green
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "One or more required jobs failed or were cancelled"
+            exit 1
+          fi
