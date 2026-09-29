@@ -108,21 +108,13 @@ asserts the alternative acceptance branch: a specific, documented blocker.
 Either removes the same-uid exposure of filler env/memory/core dumps
 (epic C15 / threat U6).
 
-## 5. Acceptance criteria results (issue #5)
+## 5. Acceptance criteria (issue #5)
 
-Local run (macOS, Node 24, Playwright 1.63): `npm test` → **8/8 tests
-pass**; `npm run demo` → **13/13 checks pass**. Both blocker branches of
-the slot-user path were exercised additionally (`SAFE_PLAYWRIGHT_SLOT_USER`
-set to an existing and to a nonexistent user — 8/8 each).
-
-| Criterion | Result |
-|---|---|
-| PoC demo: login via fill browser; agent-side session reads the page; password absent (evaluate finds empty field / no credential in DOM) | PASS — agent browser authenticates via storage-state; `page.evaluate` on `/login` returns `{"present":true,"value":""}`; password absent from dashboard/login DOM, storage and cookies |
-| Fill browser process has no listening TCP port (verified in test) | PASS — asserted twice (worker self-audit + independent parent audit while alive): `--remote-debugging-pipe` present, no `--remote-debugging-port`, `listeningTcpPorts: []` |
-| Fill browser runs as a different OS user than the agent (or documented blocker) | BLOCKED — documented in §4; test asserts the blocker branch (specific reason + docs reference) |
-| `storage-state` handoff works: agent authenticated without ever seeing the credential | PASS — `auth-state[data-authenticated=true]`, session cookie present, `containsPassword=false`, file mode `600` |
-| Post-fill hygiene: field cleared / navigation happened (L5) asserted | PASS — `navigatedAfterSubmit=true`, no password field on dashboard, empty field and no credential in HTML on return to `/login` |
-| Demo script + README section | `scripts/p4-fill-handoff-demo.mjs` (`npm run demo`), README §P4 PoC |
+All six criteria are asserted by `test/p4-fill-browser-handoff.test.mjs`
+and re-run on every CI push. **Status lives in
+[issue #5](https://github.com/Zerocreds-com/safe-playwright/issues/5)**
+(boxes checked, evidence summarized in the PR #11 description); the
+per-criterion expectations are described in README §P4 PoC.
 
 ## 6. Known limitations of the PoC
 

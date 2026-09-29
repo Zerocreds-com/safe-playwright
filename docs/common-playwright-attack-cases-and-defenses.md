@@ -301,20 +301,7 @@ radius via a separate uid (currently blocked, see P4 doc §4).
 Legend: ✅ defense implemented and asserted · ⚠️ partially / tracked ·
 ❌ none (no such row — anything missing is a bug in this document).
 
-## 3. What this pass added to the repo
-
-- This document.
-- policy-lint rules added: `no-remote-debugging-address`,
-  `no-code-exec-sinks`, `no-file-urls`, `no-bind-all`,
-  `no-tls-blindfold` (on top of the original five) — all mutation-tested.
-- CI: `supply-chain` job (`npm ci --ignore-scripts` + `npm audit
-  --audit-level=high`), `--ignore-scripts` on the test job too,
-  `.github/dependabot.yml` (npm + github-actions, weekly).
-- P4 test: explicit loopback assertion for the test login server.
-- Issue [#14](https://github.com/Zerocreds-com/safe-playwright/issues/14)
-  for the open supply-chain items.
-
-## 4. Where the real remaining work is
+## 3. Where the real remaining work is
 
 Reading the matrix honestly: **cases that reduce to "the agent did
 something with a hostile page" (1.3, 1.5, 1.6, part of 1.4) are all
