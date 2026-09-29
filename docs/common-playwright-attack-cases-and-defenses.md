@@ -227,6 +227,16 @@ theft.
 (visible in `ps`), env var (readable via `/proc/<pid>/environ`,
 core dumps), or a stray `console.log`.
 
+**Victim-side context (registry input, issue #19).** The bulk of stolen
+credentials does not come from exotic hacks: it comes from **infostealer
+logs** — stealer infections picked up while browsing dubious sites (cracks,
+"free download" SEO traps, shady streams). Canonical case: Mandiant tied the
+2024 Snowflake/UNC5537 breaches to infostealer-infected credentials bought on
+marketplaces (SecurityWeek, "Snowflake Attacks: Mandiant Links Data Breaches
+to Infostealer Infections"). Implication for us: assume the operator endpoint
+can be logged — which is exactly what same-uid hardening (#8), canary
+use-alerts (#7) and external credential monitoring (registry #19) are for.
+
 **Primitives:** (d).
 
 **Our defense.**
@@ -282,6 +292,43 @@ browser visits only the intended login origin (destination binding,
 C8 → issue #4 — not yet at runtime), and P7 (#8) would contain the blast
 radius via a separate uid (currently blocked, see P4 doc §4).
 
+### 1.13 MCP-ecosystem incidents (adjacent surface — we consume MCP)
+
+**What it is.** This repo runs no MCP server (§1.2), but the consuming
+stack (trained-assist-agent) pins `@playwright/mcp`, and MCP servers are
+privileged bridges between a model and the host: one flaw anywhere in
+the chain reaches primitives (a) or (b) against our machines. All five
+entries below were **verified from multiple sources on 2026-09-29**:
+
+| CVE | Component | What happened | Primitive |
+|---|---|---|---|
+| CVE-2026-35577 (2026-04-09) | Apollo MCP Server | auth bypass — DNS rebinding to invoke tools (same primitive as CVE-2025-9611, §1.2) | a |
+| CVE-2026-27825 (2026-03) | mcp-atlassian (Sooperset) | unauthenticated RCE via chained flaws incl. arbitrary file write | b |
+| CVE-2026-53633 (GHSA-g8mr-85jm-7xhm) | `@vitest/browser(-playwright)` | exposed Browser Mode API proxies **CDP** and overwrites config files → RCE; affects CDP-capable providers (incl. Playwright) | a |
+| CVE-2025-63603 (2025-09-29) | reading-plus-ai/mcp-server-data-exploration | `safe_eval` command injection in `server.py` → arbitrary Python (OWASP MCP05 class) | b |
+| CVE-2025-71336 (GHSA-q2xp-j85q-883h) | Flowise < 3.0.6 (agent platform, tracked by mcp-cve-project) | unsandboxed OS command injection → RCE | b |
+
+Ecosystem scale, why "not our package" is not a comfort: Backslash
+(2025-06-25) — hundreds of MCP servers vulnerable; mcp-safeguard scan
+(2026-05) — 27.8% of 54 servers HIGH/CRITICAL; Queen's University study
+— 7.2% of 1,899 servers; systematic treatments: arXiv:2509.24272
+("When MCP Servers Attack" taxonomy), arXiv:2608.00150 (internet-facing
+MCP servers measured at scale).
+
+**Primitives:** (a), (b).
+
+**Our defense.** No MCP server in this repo; policy-lint bans the same
+primitives in our code — CDP port/attach (§1.1) and code-exec sinks
+(§1.3). For the consuming stack: pin `@playwright/mcp` ≥ 0.0.40 and run
+the advisory watch (issues #14, #19). Wrapper obligations for MCP tool
+surfaces (reference-mode, redaction, no raw cookie results) are P1/P3 —
+issue #4.
+
+**Status discipline.** Leads may enter the survey with status ❓
+*unverified* — verification (or dropping) is an explicit task of the
+case-registry automation (#19), never a reason to silently discard a
+lead.
+
 ## 2. Coverage matrix
 
 | # | Case | Primitive | Status |
@@ -298,6 +345,7 @@ radius via a separate uid (currently blocked, see P4 doc §4).
 | 1.10 | Pixel leaks | d | ✅ static + runtime + test |
 | 1.11 | Second CDP client | a | ✅ pipe ⇒ no socket · accounting deferred (epic #2 §6) |
 | 1.12 | Browser 0-day | b | ⚠️ accepted residual · kept current via Dependabot |
+| 1.13 | MCP-ecosystem RCE/auth bypass (5 CVEs verified) | a,b | ⚠️ no MCP server here · pin + advisory watch → #14/#19 · wrapper → #4 |
 
 Legend: ✅ defense implemented and asserted · ⚠️ partially / tracked ·
 ❌ none (no such row — anything missing is a bug in this document).
