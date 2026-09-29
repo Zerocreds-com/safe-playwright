@@ -4,6 +4,12 @@ Goal: Bootstrap safe-playwright repo and land the sensitive-data proxy feasibili
 - [ ] Merged to main
 - [ ] Research doc verified live — matrix has sources, PR + tracking issue linked (https://github.com/Zerocreds-com/safe-playwright/issues/2)
 
+Goal: P2 external attestation + two-phase state verification (issue #3)
+
+- [ ] CI green on https://github.com/Zerocreds-com/safe-playwright/pull/10
+- [ ] Tests green — `npm test` (42 tests: attestation, pipeline, chain, dead-man, HTTP integration)
+- [ ] Issue #3 acceptance criteria covered (test table in PR #10)
+- [ ] Merged to main
 Goal: P4 fill browser + storage-state handoff PoC (issue #5, epic #2)
 
 - [ ] PR: https://github.com/Zerocreds-com/safe-playwright/pull/11 — tests 8/8, demo 13/13
