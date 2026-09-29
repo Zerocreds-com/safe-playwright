@@ -1,5 +1,7 @@
 # safe-playwright
 
+![CI](https://github.com/Zerocreds-com/safe-playwright/actions/workflows/ci.yml/badge.svg)
+
 **Playwright proxy layer — the browser fills sensitive data while the agent, the driver and the LLM never see it.**
 
 ZeroCreds' idea ("the bot uses a password without seeing it") applied to browser
@@ -44,9 +46,27 @@ The guarantee this project researches and builds toward:
 
 ## Status
 
-Research landed (PR #1). First implementation phase is in progress:
-P2 external attestation (#3) and **P4 fill browser + storage-state
-handoff (#5)** — see the PoC below.
+Research landed (PR #1). Implemented so far: **P2 external attestation
+and two-phase state verification** (#3, PR #10) and **P4 fill browser +
+storage-state handoff** (#5, PR #11) — see the PoC below. Next: P3 (#4),
+then the rest of the epic.
+
+## Continuous integration
+
+Every PR runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+
+- **test matrix** — `npm test` + the P4 demo smoke on
+  `{ubuntu, macos} × {node 20, 24}`; macOS keeps the `lsof` branch of
+  `src/port-audit.mjs` exercised. Playwright browsers are cached by
+  lockfile hash (`PLAYWRIGHT_BROWSERS_PATH`).
+- **policy-lint** — zero-dependency static ratchet over fill-path code,
+  runnable locally as `npm run policy:lint`: no `--remote-debugging-port`
+  in launch-path files, no `exposeDevToolsProtocol` anywhere, no
+  pixel-export APIs or `connectOverCDP` in the fill worker, no focused
+  tests. Documentation may *mention* any of these tokens — only `src/`,
+  `test/` and `scripts/` are scanned.
+- **ci** — a single aggregate job; branch protection on `main` requires
+  exactly this check (repo ruleset, no bypass).
 
 ## P4 PoC: fill browser + storage-state handoff (issue #5)
 

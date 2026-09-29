@@ -10,6 +10,7 @@
   "scripts": {
     "test": "node --test",
     "demo": "node scripts/p4-fill-handoff-demo.mjs",
+    "policy:lint": "node scripts/policy-lint.mjs",
     "verifier": "node src/cli/verifier.js",
     "manifest": "node src/tools/manifest-tool.js"
   },
