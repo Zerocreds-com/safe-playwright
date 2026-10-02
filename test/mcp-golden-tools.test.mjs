@@ -221,6 +221,13 @@ test('golden MCP tool set: security and usability', async (t) => {
       assert.equal(result.isError, true);
       assert.match(result.text, /registered canary/);
       assert.equal(requests, 0);
+      const encoded = Array.from(CANARY, (char) => `%${char.codePointAt(0).toString(16)}`).join('');
+      const encodedResult = await call('browser_navigate', {
+        url: `http://127.0.0.1:${target.address().port}/?token=${encoded}`,
+      });
+      assert.equal(encodedResult.isError, true);
+      assert.match(encodedResult.text, /registered canary/);
+      assert.equal(requests, 0);
     } finally {
       await new Promise((resolve) => target.close(resolve));
     }

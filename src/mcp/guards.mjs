@@ -86,7 +86,15 @@ export function checkNavigation(rawUrl, allowPrivateHosts = []) {
 // detection of a raw secret crossing the model boundary).
 export function findCanary(text, canaryValues) {
   if (typeof text !== 'string' || text.length === 0) return false;
-  return canaryValues.some((canary) => canary.length > 0 && text.includes(canary));
+  if (canaryValues.some((canary) => canary.length > 0 && text.includes(canary))) return true;
+  // URLs can carry the same value as percent-encoded bytes. Check that form
+  // before a navigation tool hands the URL to the browser.
+  try {
+    const decoded = decodeURIComponent(text);
+    return canaryValues.some((canary) => canary.length > 0 && decoded.includes(canary));
+  } catch {
+    return false;
+  }
 }
 
 export function argumentsContainCanary(value, canaryValues) {
