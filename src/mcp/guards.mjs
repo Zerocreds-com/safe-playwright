@@ -89,6 +89,15 @@ export function findCanary(text, canaryValues) {
   return canaryValues.some((canary) => canary.length > 0 && text.includes(canary));
 }
 
+export function argumentsContainCanary(value, canaryValues) {
+  if (typeof value === 'string') return findCanary(value, canaryValues);
+  if (Array.isArray(value)) return value.some((item) => argumentsContainCanary(item, canaryValues));
+  if (value && typeof value === 'object') {
+    return Object.values(value).some((item) => argumentsContainCanary(item, canaryValues));
+  }
+  return false;
+}
+
 export class PolicyError extends Error {
   constructor(message) {
     super(message);

@@ -14,6 +14,7 @@ import test, { after } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { startLocalLoginServer } from '../src/local-login-server.mjs';
+import { callGoldenTool } from '../src/mcp/tools.mjs';
 
 const USERNAME = 'demo-user';
 const SECRET = 'golden-mcp-canary-password-7c19!';
@@ -114,6 +115,18 @@ after(() => {
   if (rpc) rpc.close();
   if (server) server.close();
   fs.rmSync(artifacts, { recursive: true, force: true });
+});
+
+test('registered canary in a navigation argument is refused before dispatch', async () => {
+  let navigated = false;
+  await assert.rejects(
+    callGoldenTool('browser_navigate', { url: `https://example.org/?token=${CANARY}` }, {
+      canaryValues: [CANARY],
+      session: { navigate: async () => { navigated = true; } },
+    }),
+    /registered canary/,
+  );
+  assert.equal(navigated, false);
 });
 
 test('golden MCP tool set: security and usability', async (t) => {

@@ -3,7 +3,7 @@
 // is: no evaluate/run-code, no cookie access, no console dumps, no CDP
 // attachment, no environment access (checklist §6.2).
 
-import { PolicyError, findCanary } from './guards.mjs';
+import { PolicyError, argumentsContainCanary } from './guards.mjs';
 import { performLogin } from './login.mjs';
 
 const asJson = (value) => JSON.stringify(value);
@@ -65,13 +65,7 @@ export const GOLDEN_TOOLS = [
       required: ['ref', 'text'],
       additionalProperties: false,
     },
-    handler: async ({ session, canaryValues }, args) => {
-      if (findCanary(args.text, canaryValues)) {
-        throw new PolicyError(
-          'value matches a registered canary credential — a raw secret crossed the '
-            + 'model boundary (C4), refused',
-        );
-      }
+    handler: async ({ session }, args) => {
       const result = await session.type(args.ref, args.text);
       if (args.submit) {
         await session.locatorFor(args.ref).press('Enter');
@@ -151,6 +145,12 @@ export async function callGoldenTool(name, args, context) {
   const tool = GOLDEN_TOOLS.find((entry) => entry.name === name);
   if (!tool) {
     return { error: `unknown tool: ${name}` };
+  }
+  if (argumentsContainCanary(args, context.canaryValues ?? [])) {
+    throw new PolicyError(
+      'value matches a registered canary credential — a raw secret crossed the '
+        + 'model boundary (C4), refused',
+    );
   }
   return tool.handler(context, args ?? {});
 }
