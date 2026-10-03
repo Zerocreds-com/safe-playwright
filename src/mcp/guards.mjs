@@ -42,7 +42,7 @@ function isPrivateIpv4(ip) {
 function isPrivateIpv6(ip) {
   if (ip === '::1' || ip === '::') return true;
   if (/^f[cd]/.test(ip)) return true; // ULA
-  if (/^fe8[0-9a-f]:/.test(ip)) return true; // link-local
+  if (/^fe[89ab][0-9a-f]:/.test(ip)) return true; // fe80::/10 link-local
   return false;
 }
 

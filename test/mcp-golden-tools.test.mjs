@@ -182,6 +182,8 @@ test('golden MCP tool set: security and usability', async (t) => {
       ['http://169.254.169.254/latest/meta-data/', 'metadata'],
       ['http://metadata.google.internal/computeMetadata/v1/', 'metadata'],
       ['http://10.99.88.77/admin', 'private'],
+      ['http://[fe90::1]/admin', 'private'],
+      ['http://[febf::1]/admin', 'private'],
       ['http://user:pass@example.com/', 'credentials'],
       ['not a url', 'valid URL'],
     ];
