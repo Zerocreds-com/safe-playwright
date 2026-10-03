@@ -86,7 +86,27 @@ export function checkNavigation(rawUrl, allowPrivateHosts = []) {
 // detection of a raw secret crossing the model boundary).
 export function findCanary(text, canaryValues) {
   if (typeof text !== 'string' || text.length === 0) return false;
-  return canaryValues.some((canary) => canary.length > 0 && text.includes(canary));
+  if (canaryValues.some((canary) => canary.length > 0 && text.includes(canary))) return true;
+  // Decode valid percent-byte runs independently. A malformed escape elsewhere
+  // in the argument must not disable inspection of an encoded canary.
+  const decoded = text.replace(/(?:%[0-9a-fA-F]{2})+/g, (run) => {
+    try {
+      return decodeURIComponent(run);
+    } catch {
+      // Preserve ASCII matches even if a run also contains malformed UTF-8.
+      return run.replace(/%([0-9a-fA-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    }
+  });
+  return canaryValues.some((canary) => canary.length > 0 && decoded.includes(canary));
+}
+
+export function argumentsContainCanary(value, canaryValues) {
+  if (typeof value === 'string') return findCanary(value, canaryValues);
+  if (Array.isArray(value)) return value.some((item) => argumentsContainCanary(item, canaryValues));
+  if (value && typeof value === 'object') {
+    return Object.values(value).some((item) => argumentsContainCanary(item, canaryValues));
+  }
+  return false;
 }
 
 export class PolicyError extends Error {

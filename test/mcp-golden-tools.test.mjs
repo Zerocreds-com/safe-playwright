@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import { createServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -14,6 +15,7 @@ import test, { after } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { startLocalLoginServer } from '../src/local-login-server.mjs';
+import { callGoldenTool } from '../src/mcp/tools.mjs';
 
 const USERNAME = 'demo-user';
 const SECRET = 'golden-mcp-canary-password-7c19!';
@@ -116,6 +118,18 @@ after(() => {
   fs.rmSync(artifacts, { recursive: true, force: true });
 });
 
+test('registered canary in a navigation argument is refused before dispatch', async () => {
+  let navigated = false;
+  await assert.rejects(
+    callGoldenTool('browser_navigate', { url: `https://example.org/?token=${CANARY}` }, {
+      canaryValues: [CANARY],
+      session: { navigate: async () => { navigated = true; } },
+    }),
+    /registered canary/,
+  );
+  assert.equal(navigated, false);
+});
+
 test('golden MCP tool set: security and usability', async (t) => {
   server = await startLocalLoginServer({ username: USERNAME, password: SECRET });
 
@@ -192,6 +206,37 @@ test('golden MCP tool set: security and usability', async (t) => {
     }
     const allowed = await call('browser_navigate', { url: `${server.url}/form-demo` });
     assert.equal(allowed.isError, false, `allowlist should permit the test server: ${allowed.text}`);
+  });
+
+  await t.test('security: registered canary URL never reaches a browser request', async () => {
+    let requests = 0;
+    const target = createServer((_request, response) => {
+      requests += 1;
+      response.writeHead(200).end('unexpected request');
+    });
+    await new Promise((resolve) => target.listen(0, '127.0.0.1', resolve));
+    try {
+      const url = `http://127.0.0.1:${target.address().port}/?token=${CANARY}`;
+      const result = await call('browser_navigate', { url });
+      assert.equal(result.isError, true);
+      assert.match(result.text, /registered canary/);
+      assert.equal(requests, 0);
+      const encoded = Array.from(CANARY, (char) => `%${char.codePointAt(0).toString(16)}`).join('');
+      const encodedResult = await call('browser_navigate', {
+        url: `http://127.0.0.1:${target.address().port}/?token=${encoded}`,
+      });
+      assert.equal(encodedResult.isError, true);
+      assert.match(encodedResult.text, /registered canary/);
+      assert.equal(requests, 0);
+      const malformedResult = await call('browser_navigate', {
+        url: `http://127.0.0.1:${target.address().port}/?bad=%GG&token=${encoded}`,
+      });
+      assert.equal(malformedResult.isError, true);
+      assert.match(malformedResult.text, /registered canary/);
+      assert.equal(requests, 0);
+    } finally {
+      await new Promise((resolve) => target.close(resolve));
+    }
   });
 
   await t.test('security: snapshot shows plain values, never OTP/tel/card values', async () => {
