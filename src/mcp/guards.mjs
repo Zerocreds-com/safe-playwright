@@ -87,14 +87,17 @@ export function checkNavigation(rawUrl, allowPrivateHosts = []) {
 export function findCanary(text, canaryValues) {
   if (typeof text !== 'string' || text.length === 0) return false;
   if (canaryValues.some((canary) => canary.length > 0 && text.includes(canary))) return true;
-  // URLs can carry the same value as percent-encoded bytes. Check that form
-  // before a navigation tool hands the URL to the browser.
-  try {
-    const decoded = decodeURIComponent(text);
-    return canaryValues.some((canary) => canary.length > 0 && decoded.includes(canary));
-  } catch {
-    return false;
-  }
+  // Decode valid percent-byte runs independently. A malformed escape elsewhere
+  // in the argument must not disable inspection of an encoded canary.
+  const decoded = text.replace(/(?:%[0-9a-fA-F]{2})+/g, (run) => {
+    try {
+      return decodeURIComponent(run);
+    } catch {
+      // Preserve ASCII matches even if a run also contains malformed UTF-8.
+      return run.replace(/%([0-9a-fA-F]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    }
+  });
+  return canaryValues.some((canary) => canary.length > 0 && decoded.includes(canary));
 }
 
 export function argumentsContainCanary(value, canaryValues) {
