@@ -16,6 +16,6 @@
     "manifest": "node src/tools/manifest-tool.js"
   },
   "dependencies": {
-    "playwright": "^1.63.0"
+    "playwright": "^1.64.0"
   }
 }
