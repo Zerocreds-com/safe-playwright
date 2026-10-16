@@ -40,8 +40,14 @@ export class BrowserSession {
     const verdict = checkNavigation(url, allowPrivateHosts);
     if (!verdict.ok) throw new PolicyError(`navigation blocked: ${verdict.reason}`);
     this.refs.clear();
-    await this.requirePage().goto(url, { waitUntil: 'domcontentloaded', timeout: 15_000 });
-    return { url: this.page.url() };
+    // `domcontentloaded` also waits for external module scripts. Some sites
+    // keep those requests open, which makes navigation time out despite the
+    // document itself already being available. Wait for the response commit,
+    // then give the HTML parser a short bounded window; app readiness belongs
+    // to browser_wait or a later snapshot.
+    const response = await this.requirePage().goto(url, { waitUntil: 'commit', timeout: 15_000 });
+    await this.page.waitForFunction(() => document.readyState !== 'loading', null, { timeout: 3_000 }).catch(() => {});
+    return { url: this.page.url(), status: response?.status() ?? null };
   }
 
   // Returns ref-tagged snapshot text, or throws PolicyError when a
