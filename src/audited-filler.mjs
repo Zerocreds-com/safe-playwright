@@ -60,10 +60,76 @@ function usage() {
   return [
     'Usage: audited-filler.mjs',
     '  --login-url <url>    login page of the (local test) site',
-    '  --cred-file <path>   0600 JSON file: {"username","password"}',
+    '  --cred-file <path>   0600 JSON file: {"username","password"} (local demo mode)',
+    '  --broker-url <url>   loopback ZeroCreds one-use grant redeemer',
     '  --storage-out <path> where to write browserContext.storageState()',
     '  --report-out <path>  where to write the fill/hygiene/audit report',
   ].join('\n');
+}
+
+function readGrantFromStdin() {
+  return new Promise((resolve, reject) => {
+    let buffer = '';
+    const onData = (chunk) => {
+      buffer += chunk.toString('utf8');
+      const newline = buffer.indexOf('\n');
+      if (newline < 0) {
+        if (buffer.length > 4096) finish(new Error('invalid broker grant message'));
+        return;
+      }
+      const line = buffer.slice(0, newline);
+      finish(null, line);
+    };
+    const onEnd = () => finish(new Error('broker grant message missing'));
+    const finish = (error, line) => {
+      process.stdin.removeListener('data', onData);
+      process.stdin.removeListener('end', onEnd);
+      if (error) return reject(error);
+      try {
+        const grant = JSON.parse(line).grant;
+        if (typeof grant !== 'string' || !/^[a-f0-9]{64}$/.test(grant)) throw new Error('invalid grant');
+        resolve(grant);
+      } catch {
+        reject(new Error('invalid broker grant message'));
+      }
+    };
+    process.stdin.on('data', onData);
+    process.stdin.once('end', onEnd);
+    process.stdin.resume();
+  });
+}
+
+async function redeemBrokerGrant(brokerUrl) {
+  let endpoint;
+  try { endpoint = new URL(brokerUrl); } catch { throw new Error('invalid credential broker URL'); }
+  if (endpoint.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(endpoint.hostname)) {
+    throw new Error('credential broker must be loopback HTTP');
+  }
+  const grant = await readGrantFromStdin();
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grant }),
+      redirect: 'error',
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    throw new Error('credential broker unavailable');
+  }
+  if (!response.ok) throw new Error('credential broker refused the grant');
+  let credentials;
+  try {
+    const raw = await response.text();
+    if (Buffer.byteLength(raw) > 32_768) throw new Error('oversized');
+    credentials = JSON.parse(raw);
+  } catch { throw new Error('credential broker returned invalid data'); }
+  if (typeof credentials.username !== 'string' || !credentials.username
+      || typeof credentials.password !== 'string' || !credentials.password) {
+    throw new Error('credential broker returned incomplete credentials');
+  }
+  return credentials;
 }
 
 function redact(text, secrets) {
@@ -125,20 +191,27 @@ function writeReport(reportOut, report) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  for (const required of ['login-url', 'cred-file', 'storage-out', 'report-out']) {
+  for (const required of ['login-url', 'storage-out', 'report-out']) {
     if (!args[required]) {
       process.stderr.write(`Missing --${required}\n${usage()}\n`);
       process.exit(2);
     }
   }
 
-  const credFile = path.resolve(args['cred-file']);
+  const brokerMode = Boolean(args['broker-url']);
+  if (brokerMode === Boolean(args['cred-file'])) {
+    process.stderr.write(`Specify exactly one of --cred-file or --broker-url\n${usage()}\n`);
+    process.exit(2);
+  }
+  const credFile = args['cred-file'] ? path.resolve(args['cred-file']) : null;
   const storageOut = path.resolve(args['storage-out']);
   const reportOut = path.resolve(args['report-out']);
   const loginUrl = args['login-url'];
 
-  const credFileMode = fs.statSync(credFile).mode & 0o777;
-  const credentials = JSON.parse(fs.readFileSync(credFile, 'utf8'));
+  const credFileMode = credFile ? fs.statSync(credFile).mode & 0o777 : null;
+  const credentials = brokerMode
+    ? await redeemBrokerGrant(args['broker-url'])
+    : JSON.parse(fs.readFileSync(credFile, 'utf8'));
   const { username, password } = credentials;
   const secrets = [password];
 
@@ -153,8 +226,9 @@ async function main() {
     },
     slotUser: { configured: configuredSlotUser() },
     credentials: {
-      credFile,
-      credFileMode: credFileMode.toString(8).padStart(3, '0'),
+      source: brokerMode ? 'zerocreds-one-use-grant' : 'private-file-demo',
+      credFile: credFile || null,
+      credFileMode: credFileMode == null ? null : credFileMode.toString(8).padStart(3, '0'),
       passwordInArgv: process.argv.some((arg) => arg.includes(password)),
     },
     hygiene: {},
@@ -173,20 +247,36 @@ async function main() {
     pixelGuard.install(page, context);
 
     // --- credential fill flow (the only place the password is typed) ---
+    const usernameSelector = args['username-selector'] || '#username';
+    const passwordSelector = args['password-selector'] || '#password';
     await page.goto(loginUrl);
-    await page.fill('#username', username);
-    await page.fill('#password', password);
-    const heldDuringFill = await page.$eval('#password', (element) => element.value.length > 0);
-    await Promise.all([
-      page.waitForURL((url) => new URL(url).pathname === '/dashboard'),
-      page.click('button[type="submit"]'),
-    ]);
-    const navigatedAfterSubmit = new URL(page.url()).pathname === '/dashboard';
+    const expectedOrigin = args['approved-origin'];
+    if (expectedOrigin && new URL(page.url()).origin !== expectedOrigin) {
+      throw new Error('approved login origin mismatch');
+    }
+    await page.fill(usernameSelector, username);
+    await page.fill(passwordSelector, password);
+    const heldDuringFill = await page.locator(passwordSelector).evaluate((element) => element.value.length > 0);
+    if (args['success-selector']) {
+      await page.click(args['submit-selector'] || 'button[type="submit"]');
+      await page.locator(args['success-selector']).waitFor({ state: 'visible', timeout: 15_000 });
+    } else {
+      await Promise.all([
+        page.waitForURL((url) => new URL(url).pathname === '/dashboard'),
+        page.click(args['submit-selector'] || 'button[type="submit"]'),
+      ]);
+    }
+    const navigatedAfterSubmit = args['success-selector']
+      ? await page.locator(args['success-selector']).isVisible()
+      : new URL(page.url()).pathname === '/dashboard';
+    if (expectedOrigin && new URL(page.url()).origin !== expectedOrigin) {
+      throw new Error('approved login origin mismatch after submit');
+    }
 
     // --- post-fill hygiene (L5) on the fresh document ---
     const dashboardProbe = await page.evaluate(() => {
       const field = document.querySelector('input[type="password"]');
-      return { passwordFieldPresent: Boolean(field), passwordValue: field ? field.value : null };
+      return { passwordFieldPresent: Boolean(field), passwordValuePresent: Boolean(field && field.value) };
     });
     const dashboardHtml = await page.content();
     const passwordAbsentFromDashboardHtml = !dashboardHtml.includes(password);
@@ -199,7 +289,7 @@ async function main() {
 
     // --- L5: revisiting the login form must show an empty password field ---
     await page.goto(loginUrl);
-    const passwordValueOnReturn = await page.$eval('#password', (element) => element.value);
+    const passwordValueOnReturnPresent = Boolean(await page.locator(passwordSelector).inputValue().catch(() => ''));
     const loginHtml = await page.content();
     const passwordAbsentFromLoginHtml = !loginHtml.includes(password);
 
@@ -210,10 +300,9 @@ async function main() {
       heldDuringFill,
       navigatedAfterSubmit,
       passwordFieldPresentOnDashboard: dashboardProbe.passwordFieldPresent,
-      passwordValueOnDashboard: dashboardProbe.passwordValue,
+      passwordValuePresentOnDashboard: dashboardProbe.passwordValuePresent,
       passwordAbsentFromDashboardHtml,
-      loginFormEmptyOnReturn: passwordValueOnReturn === '',
-      passwordValueOnReturn,
+      loginFormEmptyOnReturn: !passwordValueOnReturnPresent,
       passwordAbsentFromLoginHtml,
     };
     const hygieneOk =

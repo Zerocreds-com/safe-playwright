@@ -119,10 +119,10 @@ test('P4: fill browser login, zero TCP ports, storage-state handoff to agent bro
 
     // L5 hygiene: nothing left behind after navigation and on re-entry
     assert.equal(report.hygiene.passwordFieldPresentOnDashboard, false);
-    assert.equal(report.hygiene.passwordValueOnDashboard, null);
+    assert.equal(report.hygiene.passwordValuePresentOnDashboard, false);
     assert.equal(report.hygiene.passwordAbsentFromDashboardHtml, true);
     assert.equal(report.hygiene.loginFormEmptyOnReturn, true);
-    assert.equal(report.hygiene.passwordValueOnReturn, '');
+    assert.ok(!JSON.stringify(report).includes(SECRET), 'worker report must not contain the password');
     assert.equal(report.hygiene.passwordAbsentFromLoginHtml, true);
 
     // Transport: pipe only, no TCP port (worker-side audit, browser alive)
