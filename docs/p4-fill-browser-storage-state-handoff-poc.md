@@ -26,8 +26,9 @@ it is born authenticated and has no login flow of its own.
 
 ### Components
 
-- `src/audited-filler.mjs` — the audited filler: reads the credential from
-  a `0600` file (never argv/env/stdout), performs the login, asserts L5
+- `src/audited-filler.mjs` — the audited filler: reads a dev/test credential
+  from a `0600` file or redeems a one-use ZeroCreds grant over loopback
+  (grant only via stdin; credential never via argv/env/stdout), performs the login, asserts L5
   hygiene, exports storage-state, runs a transport audit while the browser
   is still open, writes `fill-report.json`, then holds the browser open
   until the parent closes stdin (so the parent can audit independently).

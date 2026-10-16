@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -38,10 +39,13 @@ const FORBIDDEN_TOOLS = [
 const artifacts = fs.mkdtempSync(path.join(os.tmpdir(), 'safe-mcp-test-'));
 const credFile = path.join(artifacts, 'credential.json');
 const storeFile = path.join(artifacts, 'cred-store.json');
+const brokerTokenFile = path.join(artifacts, 'zerocreds-admin-token');
 
 let server = null;
+let brokerServer = null;
 let child = null;
 let rpc = null;
+let brokerUrl = null;
 
 function startRpcClient(proc) {
   let buffer = '';
@@ -113,11 +117,44 @@ function refFor(snapshotText, role) {
 after(() => {
   if (rpc) rpc.close();
   if (server) server.close();
+  if (brokerServer) brokerServer.close();
   fs.rmSync(artifacts, { recursive: true, force: true });
 });
 
 test('golden MCP tool set: security and usability', async (t) => {
   server = await startLocalLoginServer({ username: USERNAME, password: SECRET });
+  const brokerToken = 'test-broker-admin-token-'.padEnd(48, 'x');
+  fs.writeFileSync(brokerTokenFile, `${brokerToken}\n`, { mode: 0o600 });
+  fs.chmodSync(brokerTokenFile, 0o600);
+  brokerServer = http.createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+    res.setHeader('Content-Type', 'application/json');
+    if (req.url === '/api/local/broker/grants') {
+      if (req.headers.authorization !== `Bearer ${brokerToken}`) {
+        res.writeHead(401).end(JSON.stringify({ error: 'unauthorized' }));
+        return;
+      }
+      res.writeHead(200).end(JSON.stringify({
+        grant: 'a'.repeat(64), broker_url: `${brokerUrl}/api/local/broker/redeem`,
+        expires_at: new Date(Date.now() + 55_000).toISOString(),
+        provider: body.provider, account_alias: body.account_alias, run_id: body.run_id,
+        approved_origin: new URL(server.url).origin,
+        login_url: `${server.url}/login`, auth_url: `${server.url}/whoami`,
+        username_selector: '#username', password_selector: '#password',
+        submit_selector: 'button[type="submit"]', success_selector: '#auth-state',
+      }));
+      return;
+    }
+    if (req.url === '/api/local/broker/redeem' && body.grant === 'a'.repeat(64)) {
+      res.writeHead(200).end(JSON.stringify({ username: USERNAME, password: SECRET }));
+      return;
+    }
+    res.writeHead(401).end(JSON.stringify({ error: 'invalid grant' }));
+  });
+  await new Promise((resolve) => brokerServer.listen(0, '127.0.0.1', resolve));
+  brokerUrl = `http://127.0.0.1:${brokerServer.address().port}`;
 
   fs.writeFileSync(credFile, `${JSON.stringify({ username: USERNAME, password: SECRET })}\n`, {
     mode: 0o600,
@@ -142,6 +179,8 @@ test('golden MCP tool set: security and usability', async (t) => {
       SAFE_MCP_PRIVATE_ALLOW: '127.0.0.1,localhost',
       SAFE_MCP_CANARY: CANARY,
       SAFE_MCP_CRED_STORE: storeFile,
+      SAFE_MCP_ZEROCREDS_URL: brokerUrl,
+      SAFE_MCP_ZEROCREDS_ADMIN_TOKEN_FILE: brokerTokenFile,
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
@@ -258,6 +297,15 @@ test('golden MCP tool set: security and usability', async (t) => {
     const stats = await fetch(`${server.url}/stats`).then((r) => r.json());
     assert.equal(stats.acceptedLogins, 1);
     assert.equal(stats.rejectedLogins, 0);
+  });
+
+  await t.test('ZeroCreds broker: only the audited filler redeems the one-use grant', async () => {
+    const result = await call('browser_login', { credentialRef: 'zerocreds://github/work' });
+    assert.equal(result.isError, false, result.text);
+    assert.match(result.text, /"authenticated":true/);
+    assert.ok(!result.text.includes(SECRET), 'broker login result must not contain the password');
+    assert.ok(!rpc.stderr.includes(SECRET), 'MCP stderr must not contain the password');
+    assert.match(result.text, /storage-state \(P5\)/);
   });
 
   await t.test('usability: post-login reads, screenshot policy, L5 in the agent browser', async () => {

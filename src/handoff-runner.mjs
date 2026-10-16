@@ -22,18 +22,25 @@ import { auditProcessTree } from './port-audit.mjs';
 
 const WORKER_SCRIPT = fileURLToPath(new URL('./audited-filler.mjs', import.meta.url));
 
-export function spawnFillWorker({ loginUrl, credFile, storageOut, reportOut, switchInfo }) {
+export function spawnFillWorker({ loginUrl, credFile, brokerUrl, brokerGrant, approvedOrigin,
+  usernameSelector, passwordSelector, submitSelector, successSelector, storageOut, reportOut, switchInfo }) {
   const workerArgs = [
     WORKER_SCRIPT,
     '--login-url',
     loginUrl,
-    '--cred-file',
-    credFile,
     '--storage-out',
     storageOut,
     '--report-out',
     reportOut,
   ];
+  if (brokerUrl && brokerGrant) workerArgs.push('--broker-url', brokerUrl);
+  else if (credFile) workerArgs.push('--cred-file', credFile);
+  else throw new Error('fill worker requires a file credential or broker grant');
+  if (approvedOrigin) workerArgs.push('--approved-origin', approvedOrigin);
+  if (usernameSelector) workerArgs.push('--username-selector', usernameSelector);
+  if (passwordSelector) workerArgs.push('--password-selector', passwordSelector);
+  if (submitSelector) workerArgs.push('--submit-selector', submitSelector);
+  if (successSelector) workerArgs.push('--success-selector', successSelector);
 
   let command = process.execPath;
   let args = workerArgs;
@@ -43,6 +50,7 @@ export function spawnFillWorker({ loginUrl, credFile, storageOut, reportOut, swi
   }
 
   const child = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+  if (brokerUrl && brokerGrant) child.stdin.write(`${JSON.stringify({ grant: brokerGrant })}\n`);
 
   let stdout = '';
   let stderr = '';

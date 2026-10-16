@@ -95,7 +95,19 @@ Exactly seven tools:
 
 Absent by design: evaluate/run-code, raw cookies, console dumps, CDP
 attachment, env access (research doc §6.2). Config: `SAFE_MCP_CRED_STORE`
-(0600 store of `cred://` → login URL + credential file), `SAFE_MCP_CANARY`.
+(0600 dev/test store of `cred://` → login URL + credential file), `SAFE_MCP_CANARY`.
+
+For local ZeroCreds integration, `browser_login` also accepts
+`zerocreds://<provider>/<account-alias>`. Configure
+`SAFE_MCP_ZEROCREDS_URL` as a loopback HTTP URL and
+`SAFE_MCP_ZEROCREDS_ADMIN_TOKEN_FILE` as a private mode-0600 token file.
+The MCP process requests a short-lived, one-use grant; only the audited fill
+worker redeems it and receives the selected username/password fields. The
+ZeroCreds server pins the HTTPS site, login/auth URLs and selectors in its
+private provider policy. Do not put credential values in
+`SAFE_MCP_CRED_STORE` for broker-backed connections. The local handoff still
+places session cookies into the agent browser; session-state TTL and cleanup
+remain a separate lifecycle concern.
 
 Tested on both axes (`test/mcp-golden-tools.test.mjs`): **security**
 (guard refusals, redaction, fail-closed snapshot, canary rejection,

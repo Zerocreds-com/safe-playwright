@@ -102,15 +102,16 @@ export const GOLDEN_TOOLS = [
     name: 'browser_login',
     description:
       'Log in via the audited fill browser (P5): the credential named by the cred:// '
-      + 'reference is filled in a separate sealed process; only the resulting session '
-      + 'cookies are handed to this browser. The password never enters this tool call.',
+      + 'reference or a zerocreds://provider/account reference is filled in a separate '
+      + 'sealed process; only the resulting session cookies are handed to this browser. '
+      + 'The password never enters this tool call.',
     inputSchema: {
       type: 'object',
       properties: {
         credentialRef: {
           type: 'string',
-          pattern: '^cred://',
-          description: 'Credential reference, e.g. cred://service/login',
+          pattern: '^(cred://|zerocreds://)',
+          description: 'Credential reference, e.g. cred://service/login or zerocreds://github/work',
         },
       },
       required: ['credentialRef'],
